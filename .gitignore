@@ -1,0 +1,23 @@
+# Virtual environment
+venv/
+env/
+ENV/
+.venv/
+.env/
+
+*.azcli
+/.vscode
+/deploy.sh
+/deploy_from_local.sh
+/app/logs
+__pycache__/
+.DS_Store/
+mongo_data
+.env
+.env.*
+!.env.example
+!.env.google.example
+!.env.mariadb.example
+!.env.mongodb.example
+!.env.visualize.example
+.streamlit/config.toml

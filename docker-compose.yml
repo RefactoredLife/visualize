@@ -1,0 +1,26 @@
+services:
+  visualize:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: runtime
+    container_name: visualize
+    image: visualize:latest
+    env_file:
+      - .env.google
+      - .env.mariadb
+      - .env.mongodb
+      - .env.visualize
+    ports:
+      - "8501:8501"
+    volumes:
+      - .streamlit:/app/.streamlit:ro # To enable dark/light mode
+    restart: unless-stopped
+    networks:
+      - appnet
+
+networks:
+  appnet:
+    external: true 
+    #driver: bridge
+    #name: homelab_appnet
