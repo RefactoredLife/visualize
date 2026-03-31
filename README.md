@@ -1,3 +1,7 @@
+# About
+FFinancial intelligence platform for portfolio analytics, tax-aware planning, forecasting, and expense insights
+
+
 # Visualize
 
 `Visualize` is a personal finance intelligence platform focused on portfolio analytics, financial forecasting, expense intelligence, and interactive decision support.
