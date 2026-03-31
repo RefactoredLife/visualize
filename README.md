@@ -15,7 +15,7 @@ The application is designed to:
 - Applying quantitative finance concepts to real portfolio and cash-flow questions
 - Shipping with Docker, environment-driven config, caching, and telemetry
 
-## Showcase Features
+## App Features
 
 ### Portfolio Intelligence
 
