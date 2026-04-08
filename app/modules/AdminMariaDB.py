@@ -3,12 +3,13 @@ import hashlib
 import os
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+from common.config import get_secret
 from sqlalchemy import text
 
 
 class AdminMariaDB:
     def __init__(self):
-        self.PEPPER = get_secret("/visualize/PW_PEPPER", "")
+        self.PEPPER = get_secret("/visualize/PW_PEPPER")
 
     def hash_password(self, pw: str) -> str:
         # For production use bcrypt/argon2 with per-user salts.

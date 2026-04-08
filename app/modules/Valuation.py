@@ -6,6 +6,10 @@ import pickle
 import yfinance as yf
 from fuzzywuzzy import process
 from app.common.config import WATCHLIST_PATH
+from app.common.yfinance_config import configure_yfinance
+
+
+configure_yfinance()
 
 
 class Valuation:
@@ -133,7 +137,13 @@ if __name__ == "__main__":
     # Example usage
     # Load stock data
     ticker = 'WDAY'
-    stock_data = yf.download(ticker, start="2025-03-10", end=datetime.now().strftime("%Y-%m-%d"), progress=False)
+    stock_data = yf.download(
+        ticker,
+        start="2025-03-10",
+        end=datetime.now().strftime("%Y-%m-%d"),
+        progress=False,
+        auto_adjust=False,
+    )
     stock_info = yf.Ticker(ticker).info
     v = Valuation(ticker, stock_data, stock_info)
 

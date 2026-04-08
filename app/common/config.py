@@ -10,16 +10,20 @@ import requests
 load_dotenv(override=True)
 
 SECRET_CACHE_BASE_URL = os.getenv("SECRET_CACHE_BASE_URL")
+
 def get_secret(path):
     url = SECRET_CACHE_BASE_URL + path
     response = requests.get(url)
-    return response.json()["value"]
+    try:
+        return response.json()["value"]
+    except ValueError:
+        return response.text
 
 # Helper function to parse comma-separated strings into lists
 def get_list(env_var, default=""):
     return os.getenv(env_var, default).split(",") if os.getenv(env_var) else []
 FINANCE_PATH = get_secret("/visualize/VM_FINANCE_PATH") if socket.gethostname() == get_secret("/visualize/SERVER_HOSTNAME") else os.getenv('DOCKER_FINANCE_PATH')
-MONGO_URI = get_secret("/visualize/MONGO_URI")
+MONGO_URI = get_secret("/mongodb/MONGO_DB_URL")
 FASTAPI_BASE_URL=get_secret("/visualize/FASTAPI_BASE_URL")
 # File paths
 PDF_PATH=f"{FINANCE_PATH}/statements"
@@ -64,7 +68,7 @@ STATEMENT_START_DATE="2016-12-31"
 db_connection_string = get_secret("/visualize/db_connection_string")
 #db_connection_string = get_secret("/visualize/db_connection_string")
 OPEN_API_KEY = get_secret("/visualize/OPEN_API_KEY")
-GOOGLE_API_KEY = get_secret("/visualize/GOOGLE_API_KEY")
+GOOGLE_API_KEY = get_secret("/google/GOOGLE_API_KEY")
 
 # Cash
 CASHFLOW_PARENT=""
@@ -85,9 +89,9 @@ ALL_ACCOUNTS_2024=["cash","growth","dividends","roth","rolloverira","utma","hsa"
 ACTIVE_ACCOUNTS=["Growth","UTMA","RolloverIRA","Roth","HSA"]
 
 # Mapping of account numbers to account names
-ACCOUNT_NAME_MAPPING = json.loads(get_secret("/visualize/ACCOUNT_NAME_MAPPING", '{"Unknown":"external_ira"}'))
-ACCOUNT_NUMBER_MAPPING = json.loads(get_secret("/visualize/ACCOUNT_NUMBER_MAPPING", '{"external_ira":"Unknown"}').encode('utf-8').decode('unicode_escape'))
-EXTERNAL_ACCOUNTS = json.loads(get_secret("/visualize/EXTERNAL_ACCOUNTS",'{}').encode('utf-8').decode('unicode_escape'))
+ACCOUNT_NAME_MAPPING = json.loads(get_secret("/visualize/ACCOUNT_NAME_MAPPING"))
+ACCOUNT_NUMBER_MAPPING = json.loads(get_secret("/visualize/ACCOUNT_NUMBER_MAPPING").encode('utf-8').decode('unicode_escape'))
+EXTERNAL_ACCOUNTS = json.loads(get_secret("/visualize/EXTERNAL_ACCOUNTS").encode('utf-8').decode('unicode_escape'))
 
 BALANCES_HEADER=["Date","Account","Balance"]
 CASHFLOW_HEADER=["Date","Description","Amount","Account"]
@@ -101,23 +105,23 @@ HOLDINGS_BY_TICKER_HEADER=["Description","Beginning_Market_Value","Quantity","Pr
 
 CREDS_JSON = {
     "type": "service_account",
-    "project_id": get_secret("/visualize/GOOGLE_PROJECT_ID"),
-    "private_key_id": get_secret("/visualize/GOOGLE_PRIVATE_KEY_ID"),
-    "private_key": get_secret("/visualize/GOOGLE_PRIVATE_KEY").replace("\\n", "\n"),  # Handle newline characters
-    "client_email": get_secret("/visualize/GOOGLE_CLIENT_EMAIL"),
-    "client_id": get_secret("/visualize/GOOGLE_CLIENT_ID"),
+    "project_id": get_secret("/google/GOOGLE_PROJECT_ID"),
+    "private_key_id": get_secret("/google/GOOGLE_PRIVATE_KEY_ID"),
+    "private_key": get_secret("/google/GOOGLE_PRIVATE_KEY").replace("\\n", "\n"),  # Handle newline characters
+    "client_email": get_secret("/google/GOOGLE_CLIENT_EMAIL"),
+    "client_id": get_secret("/google/GOOGLE_CLIENT_ID"),
     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
     "token_uri": "https://oauth2.googleapis.com/token",
     "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-    "client_x509_cert_url": get_secret("/visualize/GOOGLE_CLIENT_CERT_URL"),
+    "client_x509_cert_url": get_secret("/google/GOOGLE_CLIENT_CERT_URL"),
     "universe_domain": "googleapis.com",
 }
 
 SCOPE = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
 #creds = ServiceAccountCredentials.from_json_keyfile_dict(CREDS_JSON, SCOPE)
 
-HOLDINGS_WEB_APP_URL = get_secret("/visualize/HOLDINGS_WEB_APP_URL")
-HOLDINGS_SHEET_URL = get_secret("/visualize/HOLDINGS_SHEET_URL")
+HOLDINGS_WEB_APP_URL = get_secret("/google/HOLDINGS_WEB_APP_URL")
+HOLDINGS_SHEET_URL = get_secret("/google/HOLDINGS_SHEET_URL")
 
 # Exception cases for accounts
 # start_date: Ignore transactions before this date
@@ -131,10 +135,10 @@ IGNORE_ACCOUNTS={"rolloverira":{"start_date":"07/01/2024"},"dividends":{"end_dat
 TAXABLE_IGNORE_RULES=[{"accounts":["growth","cash"],"start_date":"01/01/2017"},{"accounts":["cash","growth","dividends"],"start_date":"04/01/2017"}]
 
 
-GMAIL_USER=get_secret("/visualize/GMAIL_USER")
-GMAIL_PASSWORD=get_secret("/visualize/GMAIL_PASSWORD")
-GMAIL_IMAP_SERVER=get_secret("/visualize/GMAIL_IMAP_SERVER")
-GOOGLE_PORTFOLIO_WORKSHEET=get_secret("/visualize/GOOGLE_PORTFOLIO_WORKSHEET")
+GMAIL_USER=get_secret("/google/GMAIL_USER")
+GMAIL_PASSWORD=get_secret("/google/GMAIL_PASSWORD")
+GMAIL_IMAP_SERVER=get_secret("/google/GMAIL_IMAP_SERVER")
+GOOGLE_PORTFOLIO_WORKSHEET=get_secret("/google/GOOGLE_PORTFOLIO_WORKSHEET")
 
 MAP_1040={
     "2017": {
@@ -264,8 +268,8 @@ MAP_1040={
 WELLS_FARGO_COLUMNS  = [90,100,375,450,520]
 WELLS_FARGO_AREA = [10,9,95,100]
 
-MARIADB_DATABASE=get_secret("/visualize/MARIADB_DATABASE")
-MARIADB_HOST=get_secret("/visualize/MARIADB_HOST")
-MARIADB_USER=get_secret("/visualize/MARIADB_USER")
-MARIADB_PASSWORD=get_secret("/visualize/MARIADB_PASSWORD")
-MARIADB_PORT=get_secret("/visualize/MARIADB_PORT")
+MARIADB_DATABASE=get_secret("/mariadb/MARIADB_DATABASE")
+MARIADB_HOST=get_secret("/mariadb/MARIADB_HOST")
+MARIADB_USER=get_secret("/mariadb/MARIADB_USER")
+MARIADB_PASSWORD=get_secret("/mariadb/MARIADB_PASSWORD")
+MARIADB_PORT=get_secret("/mariadb/MARIADB_PORT")

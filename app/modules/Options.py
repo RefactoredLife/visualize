@@ -3,6 +3,10 @@ import numpy as np
 import pandas as pd
 import datetime
 from scipy.stats import norm
+from app.common.yfinance_config import configure_yfinance
+
+
+configure_yfinance()
 
 def get_option_chain(ticker):
     stock = yf.Ticker(ticker)

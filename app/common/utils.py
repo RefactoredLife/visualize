@@ -8,7 +8,7 @@ import time
 import logging
 import os
 from datetime import datetime, timezone
-from app.common.config import STATEMENT_START_DATE, BALANCES_CSV, BALANCES_HEADER
+from app.common.config import get_secret, STATEMENT_START_DATE, BALANCES_CSV, BALANCES_HEADER
 from fuzzywuzzy import process
 import re
 import hashlib
@@ -22,6 +22,7 @@ import sys
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, stream=sys.stdout, format="%(asctime)s [%(levelname)s] %(message)s")
+#SECRET_CACHE_BASE_URL = os.getenv("SECRET_CACHE_BASE_URL")
 
 def use_modern_fonts():
     st.markdown("""
@@ -240,6 +241,7 @@ def call_api(
     url = f"{FASTAPI_BASE_URL}/{endpoint.lstrip('/')}"
     method = method.upper()
     headers = headers or {}
+    #api_key = requests.get(f"{SECRET_CACHE_BASE_URL}/visualize/MY_API_KEY")
     api_key = get_secret("/visualize/MY_API_KEY")
     if api_key:
         headers["X-API-Key"] = api_key
@@ -253,7 +255,7 @@ def call_api(
             timeout=timeout
         )
         response.raise_for_status()
-        #logging.info(f"API call to {url} Here is what I'm sending out: {response.request.headers}, {response.request.method}, {response.request.url}")
+        logging.info(f"API call to {url} Here is what I'm sending out: {response.request.headers}, {response.request.method}, {response.request.url}")
         return response.json() if response.content else {}
     except requests.exceptions.JSONDecodeError:
         logging.error(f"API call to {url} returned non-JSON response. Status: {response.status_code}. Body: {response.text[:200]}")

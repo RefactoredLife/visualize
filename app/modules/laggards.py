@@ -9,6 +9,10 @@ from app.modules.Valuation import Valuation
 import pandas as pd
 from datetime import datetime, timedelta, date
 from app.common.config import WATCHLIST_PATH, CACHE_PATH
+from app.common.yfinance_config import configure_yfinance
+
+
+configure_yfinance()
 
 def is_before_today_excluding_weekends(ts: pd.Timestamp) -> bool:
     ts1 = ts.replace(hour=13, minute=00, second=0)
@@ -109,7 +113,13 @@ def check_price_drop(tickers, drop_percentage): #, delta):
                 print(f'Downloading incremental data for {ticker}')
                 new_start_date = last_date + timedelta(days=1)
                 try:
-                    new_stock_data = yf.download(ticker, start=new_start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+                    new_stock_data = yf.download(
+                        ticker,
+                        start=new_start_date.strftime('%Y-%m-%d'),
+                        end=end_date.strftime('%Y-%m-%d'),
+                        progress=False,
+                        auto_adjust=False,
+                    )
                     stock_data = pd.concat([stock_data, new_stock_data])
                     save_to_disk(stock_data, stock_data_file)
                 except YFPricesMissingError as yfpme:
@@ -120,7 +130,13 @@ def check_price_drop(tickers, drop_percentage): #, delta):
         else:
             try:
                 print(f'Downloading initial data for {ticker}')
-                stock_data = yf.download(ticker, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), progress=False)
+                stock_data = yf.download(
+                    ticker,
+                    start=start_date.strftime('%Y-%m-%d'),
+                    end=end_date.strftime('%Y-%m-%d'),
+                    progress=False,
+                    auto_adjust=False,
+                )
                 save_to_disk(stock_data, stock_data_file)
             except Exception as e:
                 print(f"Error downloading data for {ticker}: {e}")

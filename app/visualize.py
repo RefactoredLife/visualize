@@ -13,6 +13,7 @@ from common.dbcache import clear_cache
 
 from app.common.config import *
 from app.common.utils import use_modern_fonts, call_api,  load_holdings_sql
+from app.common.yfinance_config import configure_yfinance
 from modules.Plot import plot_scatter_chart,plot_day_gain,plot_balance_history,plot_balance_history_animated, plot_account_value,plot_holdings,plot_performance,plot_investment,plot_returns,plot_unrealized_gain_loss,plot_realized_gain_loss,plot_income,plot_current_month_category,plot_merchant_growth,plot_past_month_category,plot_category_by_year,plot_category_growth,plot_annual_expenses,plot_monthly_expenses,plot_total_expenses
 from app.modules.AdminMariaDB import AdminMariaDB
 from modules.Welcome import render_landing
@@ -47,8 +48,7 @@ def setup_tracing() -> None:
 setup_tracing()
 #logging.info(f"Current trace span: {trace.get_current_span()}")
 use_modern_fonts()
-#os.makedirs("/tmp/py-yfinance-cache", exist_ok=True)
-#yf.set_tz_cache_location("/tmp/py-yfinance-cache")
+configure_yfinance()
 accounts = [d["account"] for d in call_api('/accounts')]
 st.session_state.debug = False
 PEPPER = get_secret("/visualize/PW_PEPPER")
