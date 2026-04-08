@@ -303,31 +303,66 @@ def load_google_holdings(sheet_name):
 cache = TTLCache(maxsize=32, ttl=1200)  # 20 minutes
 @cached(cache)
 def fetch_day_gains_from_yahoo(tickers: Iterable[str]):
-    # Ensure tickers is a tuple for caching
-    if isinstance(tickers, list):
+    if isinstance(tickers, str):
+        tickers = (tickers,)
+    elif isinstance(tickers, list):
         tickers = tuple(tickers)
+    elif isinstance(tickers, set):
+        tickers = tuple(sorted(tickers))
+
     if not tickers:
-        return pd.DataFrame(columns=["prev_close", "last_close", "change", "pct_change"])        
+        return pd.DataFrame(columns=["prev_close", "last_close", "change", "pct_change"])
 
-    logging.info('Downloading quotes from yahoo...')
-    df = yf.download(tickers, period="2d")
-    closes = df["Close"]   # <--- pick only the "Close" slice
-    
-    # Previous vs Last
-    prev = closes.iloc[0]
-    last = closes.iloc[1]
-    change = last - prev
-    pct_change = (change / prev) * 100
+    tickers = tuple(str(t).strip() for t in tickers if str(t).strip())
+    if not tickers:
+        return pd.DataFrame(columns=["prev_close", "last_close", "change", "pct_change"])
 
-    # Assemble results
-    day_gains = pd.DataFrame({
-        "prev_close": prev.round(2),
-        "last_close": last.round(2),
-        "change": change.round(2),
-        "pct_change": pct_change.round(2)
-    })
-    day_gains.index.name = "Ticker"
-    return day_gains
+    logging.info("Downloading quotes from yahoo for %s ticker(s)...", len(tickers))
+    df = yf.download(tickers, period="5d", auto_adjust=False, progress=False)
+    if df.empty or "Close" not in df:
+        logging.warning("Yahoo download returned no close data for tickers: %s", tickers)
+        empty = pd.DataFrame(index=pd.Index(tickers, name="Ticker"))
+        return empty.reindex(columns=["prev_close", "last_close", "change", "pct_change"])
+
+    closes = df["Close"]
+
+    if isinstance(closes, pd.Series):
+        valid_closes = closes.dropna()
+        result = pd.DataFrame(index=pd.Index([tickers[0]], name="Ticker"))
+        if len(valid_closes) < 2:
+            logging.warning("Yahoo returned fewer than 2 close rows for ticker: %s", tickers[0])
+            return result.reindex(columns=["prev_close", "last_close", "change", "pct_change"])
+
+        prev_close = float(valid_closes.iloc[-2])
+        last_close = float(valid_closes.iloc[-1])
+        change = last_close - prev_close
+        pct_change = (change / prev_close) * 100 if prev_close else np.nan
+        result.loc[tickers[0], "prev_close"] = round(prev_close, 2)
+        result.loc[tickers[0], "last_close"] = round(last_close, 2)
+        result.loc[tickers[0], "change"] = round(change, 2)
+        result.loc[tickers[0], "pct_change"] = round(pct_change, 2) if pd.notna(pct_change) else np.nan
+        return result
+
+    closes = closes.dropna(how="all")
+    if closes.empty:
+        logging.warning("Yahoo close frame was empty after dropping all-null rows for tickers: %s", tickers)
+        empty = pd.DataFrame(index=pd.Index(tickers, name="Ticker"))
+        return empty.reindex(columns=["prev_close", "last_close", "change", "pct_change"])
+
+    filled_closes = closes.ffill()
+    prev_close = filled_closes.iloc[-2] if len(filled_closes.index) >= 2 else pd.Series(index=filled_closes.columns, dtype=float)
+    last_close = filled_closes.iloc[-1]
+
+    result = pd.DataFrame(index=pd.Index(tickers, name="Ticker"))
+    result["prev_close"] = prev_close.reindex(tickers)
+    result["last_close"] = last_close.reindex(tickers)
+    result["change"] = result["last_close"] - result["prev_close"]
+    result["pct_change"] = np.where(
+        result["prev_close"].notna() & (result["prev_close"] != 0),
+        (result["change"] / result["prev_close"]) * 100,
+        np.nan,
+    )
+    return result.round(2)
 
 
 def _to_stooq_symbol(ticker: str) -> str:
