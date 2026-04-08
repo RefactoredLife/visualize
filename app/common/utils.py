@@ -240,7 +240,7 @@ def call_api(
     url = f"{FASTAPI_BASE_URL}/{endpoint.lstrip('/')}"
     method = method.upper()
     headers = headers or {}
-    api_key = os.getenv("MY_API_KEY")
+    api_key = get_secret("/visualize/MY_API_KEY")
     if api_key:
         headers["X-API-Key"] = api_key
     try:

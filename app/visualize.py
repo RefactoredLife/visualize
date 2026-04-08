@@ -51,10 +51,8 @@ use_modern_fonts()
 #yf.set_tz_cache_location("/tmp/py-yfinance-cache")
 accounts = [d["account"] for d in call_api('/accounts')]
 st.session_state.debug = False
-#USERS_DB_NAME = os.getenv("visualize")
-#EMAIL_DB_NAME = os.getenv("email_db")
-PEPPER = os.getenv("PW_PEPPER", "")
-FASTAPI_KEY = os.getenv("MY_API_KEY")
+PEPPER = get_secret("/visualize/PW_PEPPER")
+FASTAPI_KEY = get_secret("/visualize/MY_API_KEY")
 performance_total_response = call_api('/performance/total', timeout=60)
 if 'first_run' not in st.session_state:
     st.session_state.expected_return = performance_total_response['cagr']*100

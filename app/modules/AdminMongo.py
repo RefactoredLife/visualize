@@ -7,7 +7,7 @@ from pymongo import ASCENDING, DESCENDING
 
 class AdminMongo():
     def __init__(self):
-        self.PEPPER = os.getenv("PW_PEPPER", "")
+        self.PEPPER = get_secret("/visualize/PW_PEPPER", "")
 
     def hash_password(self, pw: str) -> str:
         # For production use bcrypt/argon2 with per-user salts.
