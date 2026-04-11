@@ -1,5 +1,5 @@
 # About
-FFinancial intelligence platform for portfolio analytics, tax-aware planning, forecasting, and expense insights
+Financial intelligence platform for portfolio analytics, tax-aware planning, forecasting, and expense insights
 
 
 # Visualize
