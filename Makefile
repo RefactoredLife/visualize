@@ -1,81 +1,72 @@
 # --- Variables ---
 PROJECT_NAME := visualize
 SERVICE_NAME := visualize
-IMAGE_NAME := $(PROJECT_NAME):latest
-COMPOSE := docker compose
-COMPOSE_FILE := docker-compose.yml
-COMPOSE_ARGS := -f $(COMPOSE_FILE)
 VM_HOST := app
 REMOTE_DIR := ~/$(PROJECT_NAME)
+COMPOSE := docker compose
+COMPOSE_FILE := docker-compose.yml
+ENV_FILE := .env
+REMOTE_COMPOSE_ARGS := -f $(COMPOSE_FILE)
+REMOTE_COMPOSE_CMD := cd $(REMOTE_DIR) && $(COMPOSE) $(REMOTE_COMPOSE_ARGS)
 
 # --- Help Window ---
 .PHONY: help
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# --- Local Development ---
+# --- Remote Sync ---
+
+.PHONY: sync
+sync: ## Copy the compose build context to $(VM_HOST)
+	ssh $(VM_HOST) "mkdir -p $(REMOTE_DIR)"
+	scp -r app $(COMPOSE_FILE) Dockerfile requirements.txt Makefile README.md $(VM_HOST):$(REMOTE_DIR)/
+	@if [ -f $(ENV_FILE) ]; then scp $(ENV_FILE) $(VM_HOST):$(REMOTE_DIR)/$(ENV_FILE); fi
+
+# --- Remote Docker Compose ---
 
 .PHONY: build
-build: ## Build the compose services
-	$(COMPOSE) $(COMPOSE_ARGS) build
+build: sync ## Build the compose services on $(VM_HOST)
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) build"
 
 .PHONY: up
-up: ## Start the compose stack in detached mode
-	$(COMPOSE) $(COMPOSE_ARGS) up -d
+up: sync ## Start the compose stack on $(VM_HOST) in detached mode
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) up -d"
 
 .PHONY: run
 run: up ## Alias for up
 
 .PHONY: down
-down: ## Stop and remove the compose stack
-	$(COMPOSE) $(COMPOSE_ARGS) down
+down: ## Stop and remove the compose stack on $(VM_HOST)
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) down"
 
 .PHONY: stop
 stop: down ## Alias for down
 
 .PHONY: restart
-restart: ## Restart the compose stack
-	$(COMPOSE) $(COMPOSE_ARGS) restart
+restart: ## Restart the compose stack on $(VM_HOST)
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) restart"
 
 .PHONY: logs
-logs: ## Tail compose logs
-	$(COMPOSE) $(COMPOSE_ARGS) logs -f $(SERVICE_NAME)
+logs: ## Tail compose logs on $(VM_HOST)
+	ssh -t $(VM_HOST) "$(REMOTE_COMPOSE_CMD) logs -f $(SERVICE_NAME)"
+
+.PHONY: shell
+shell: ## Open a shell in the service container on $(VM_HOST)
+	ssh -t $(VM_HOST) "$(REMOTE_COMPOSE_CMD) exec $(SERVICE_NAME) sh || $(REMOTE_COMPOSE_CMD) run --rm --entrypoint sh $(SERVICE_NAME)"
 
 .PHONY: ps
-ps: ## Show compose service status
-	$(COMPOSE) $(COMPOSE_ARGS) ps
+ps: ## Show compose service status on $(VM_HOST)
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) ps"
 
 .PHONY: pull
-pull: ## Pull newer base images referenced by compose
-	$(COMPOSE) $(COMPOSE_ARGS) pull
+pull: ## Pull newer base images on $(VM_HOST)
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) pull"
 
 .PHONY: rebuild
-rebuild: ## Rebuild and restart the compose stack
-	$(COMPOSE) $(COMPOSE_ARGS) up -d --build
-
-# --- Proxmox VM Deployment ---
-
-.PHONY: push-vm
-push-vm: ## Copy compose build context to the VM
-	ssh $(VM_HOST) "mkdir -p $(REMOTE_DIR)"
-	scp -r app $(COMPOSE_FILE) Dockerfile requirements.txt Makefile README.md $(VM_HOST):$(REMOTE_DIR)/
-
-.PHONY: deploy
-deploy: push-vm ## Rebuild and restart the compose stack on the VM
-	ssh $(VM_HOST) "cd $(REMOTE_DIR) && $(COMPOSE) $(COMPOSE_ARGS) up -d --build"
-
-.PHONY: vm-logs
-vm-logs: ## Tail compose logs from the VM
-	ssh $(VM_HOST) "cd $(REMOTE_DIR) && $(COMPOSE) $(COMPOSE_ARGS) logs -f $(SERVICE_NAME)"
-
-.PHONY: vm-status
-vm-status: ## Check compose service status on the VM
-	ssh $(VM_HOST) "cd $(REMOTE_DIR) && $(COMPOSE) $(COMPOSE_ARGS) ps"
-
-# --- Cleanup ---
+rebuild: sync ## Rebuild and restart the compose stack on $(VM_HOST)
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) up -d --build"
 
 .PHONY: clean
-clean: ## Stop compose stack and prune unused docker data
-	$(COMPOSE) $(COMPOSE_ARGS) down --remove-orphans || true
-	docker image rm $(IMAGE_NAME) || true
-	docker system prune -f
+clean: ## Stop compose stack on $(VM_HOST) and prune unused docker data
+	ssh $(VM_HOST) "$(REMOTE_COMPOSE_CMD) down --remove-orphans || true"
+	ssh $(VM_HOST) "docker system prune -f"

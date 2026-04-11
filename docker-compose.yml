@@ -7,7 +7,7 @@ services:
     container_name: visualize
     image: visualize:latest
     environment:
-      - SECRET_CACHE_BASE_URL=${SECRET_CACHE_BASE_URL}
+      SECRET_CACHE_BASE_URL: ${SECRET_CACHE_BASE_URL:-}
     ports:
       - "8501:8501"
     volumes:
